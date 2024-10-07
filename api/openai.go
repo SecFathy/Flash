@@ -118,7 +118,7 @@ func makeAPICall(apiKey, apiUrl, prompt, code string, azureConfig map[string]str
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("api-key", apiKey)
+	req.Header.Set("Authorization", "Bearer "+apiKey) 
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
