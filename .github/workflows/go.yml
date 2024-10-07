@@ -1,0 +1,88 @@
+name: Go CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        go-version: [1.18, 1.19]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go-version }}
+      id: go
+
+    - name: Cache Go modules
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-${{ matrix.go-version }}-
+
+    - name: Install dependencies
+      run: go mod tidy
+
+    - name: Run tests
+      run: go test ./...
+
+    - name: Build project
+      run: go build -v ./...
+
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.19
+
+      - name: Install dependencies
+        run: go mod tidy
+      
+      - name: Build for multiple OS and architectures
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o build/flash-linux-amd64
+          GOOS=linux GOARCH=386 go build -o build/flash-linux-386
+          GOOS=darwin GOARCH=amd64 go build -o build/flash-darwin-amd64
+          GOOS=darwin GOARCH=arm64 go build -o build/flash-darwin-arm64
+          GOOS=windows GOARCH=amd64 go build -o build/flash-windows-amd64.exe
+          GOOS=windows GOARCH=386 go build -o build/flash-windows-386.exe
+
+      - name: Upload release assets
+        uses: actions/upload-artifact@v2
+        with:
+          name: binaries
+          path: build/
+
+    - name: Create Release
+      if: github.ref == 'refs/heads/main'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          build/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
