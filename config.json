@@ -1,0 +1,11 @@
+{
+    "azure_openai": {
+      "endpoint": "https://fathy.openai.azure.com",
+      "api_key": "2c776f7133914352bdd53ab8d5015f86",
+      "deployment_name": "gpt-4o",
+      "api_version": "2024-02-15-preview"
+    },
+    "openai": {
+      "api_key": "your-openai-api-key"
+    }
+  }
